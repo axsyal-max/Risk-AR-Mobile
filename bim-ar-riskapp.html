@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIM-AR Risk Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#4CAF50;--gd:#388E3C;--gl:#A5D6A7;
+  --yellow:#FFC107;--red:#F44336;--orange:#FF9800;
+  --bg:#EFEFEF;--card:#fff;--text:#1A1A1A;--muted:#888;--border:#E8E8E8;
+}
+html,body{
+  width:100%;height:100%;
+  font-family:'Poppins',sans-serif;
+  background:radial-gradient(ellipse at center,#2a2a2a,#111);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+
+/* ── PHONE: fixed 390×844 px, no grow ── */
+.phone{
+  width:390px;
+  height:844px;
+  border-radius:52px;
+  background:var(--bg);
+  box-shadow:0 0 0 10px #111,0 0 0 13px #3a3a3a,0 40px 100px rgba(0,0,0,.85);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;
+  flex-shrink:0;
+}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:110px;height:32px;background:#111;border-radius:0 0 18px 18px;z-index:200}
+
+/* Status bar */
+.sbar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:11px;font-weight:600;color:var(--text);flex-shrink:0;z-index:10}
+
+/* Screens fill remaining height */
+.screen{display:none;flex:1;flex-direction:column;min-height:0}
+.screen.active{display:flex;animation:fup .22s ease}
+@keyframes fup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scrollable body of each screen */
+.sa{flex:1;overflow-y:auto;padding:0 13px 8px;min-height:0;scrollbar-width:none}
+.sa::-webkit-scrollbar{display:none}
+
+/* Page header */
+.phdr{display:flex;align-items:center;justify-content:space-between;padding:8px 13px 4px;flex-shrink:0}
+.online{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--green);font-weight:600}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+.ava{width:34px;height:34px;border-radius:50%;background:#d4d4d4;display:flex;align-items:center;justify-content:center;font-size:16px;color:#777}
+
+/* Executive badge */
+.xbadge{background:linear-gradient(90deg,#4CAF50,#2e7d32);color:#fff;font-size:7px;font-weight:700;padding:2px 6px;border-radius:20px;letter-spacing:.3px;vertical-align:middle}
+
+/* Card */
+.card{background:var(--card);border-radius:15px;padding:11px;margin-bottom:9px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.ct{font-size:11px;font-weight:700;margin-bottom:5px}
+.cs{font-size:9px;color:var(--muted);margin-bottom:5px}
+
+/* Bottom nav */
+.bnav{height:68px;background:var(--card);border-radius:28px 28px 0 0;display:flex;align-items:center;justify-content:space-around;padding:0 6px 8px;flex-shrink:0;box-shadow:0 -4px 18px rgba(0,0,0,.07)}
+.nb{width:46px;height:46px;border-radius:50%;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.nb.active{background:var(--green)}
+.nb svg{width:20px;height:20px}
+.nb.active svg *{fill:#fff}
+.nb:not(.active) svg *{fill:#bbb}
+.nb:hover:not(.active){background:#f0f0f0}
+
+/* ── DASHBOARD ── */
+.hero{background:linear-gradient(130deg,#2e7d32,#4CAF50);border-radius:17px;padding:13px;color:#fff;margin-bottom:9px}
+.hero h3{font-size:12px;font-weight:700}
+.hero p{font-size:8px;opacity:.85}
+.hmeta{display:flex;gap:10px;margin-top:8px}
+.hm{font-size:8px;opacity:.8}
+.hm strong{display:block;font-size:12px;font-weight:800;opacity:1}
+.krow{display:flex;gap:7px;margin-bottom:9px}
+.kpi{flex:1;background:var(--card);border-radius:12px;padding:7px 5px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.04)}
+.kv{font-size:15px;font-weight:800;line-height:1}
+.kl{font-size:7px;color:var(--muted);font-weight:600;text-transform:uppercase;margin-top:2px}
+.red{color:var(--red)}.orange{color:var(--orange)}.green{color:var(--gd)}.blue{color:#1565C0}
+
+.spills{display:flex;gap:6px;margin-bottom:7px}
+.sp{flex:1;border-radius:11px;padding:5px 3px;text-align:center}
+.sv{font-size:15px;font-weight:800;display:block}
+.sl{font-size:7px;font-weight:600}
+.sp-g{background:#E8F5E9;color:var(--gd)}
+.sp-o{background:#FFF8E1;color:#F57F17}
+.sp-r{background:#FFEBEE;color:var(--red)}
+
+.vrow{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:9px}
+.vrow:last-child{border:none}
+.vrow span{color:var(--muted)}
+
+.cstrip{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#E8F5E9,#C8E6C9);border-radius:11px;padding:9px 11px;margin-top:7px}
+.cv{font-size:13px;font-weight:800;color:var(--gd)}
+.cl{font-size:8px;color:var(--gd)}
+.csu{font-size:7px;color:var(--green)}
+
+/* ── PROJECTS ── */
+.slbl{font-size:8px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin:5px 0 5px}
+.pcard{background:var(--card);border-radius:15px;padding:11px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.pcard h4{font-size:12px;font-weight:700}
+.pcard p{font-size:9px;color:var(--muted);margin-bottom:7px}
+.pbar{height:4px;background:#E0E0E0;border-radius:10px;overflow:hidden;margin-bottom:3px}
+.pf{height:100%;border-radius:10px;background:var(--green)}
+.pr{display:flex;justify-content:space-between}
+.pp{font-size:9px;font-weight:700;color:var(--green)}
+.pz{font-size:8px;color:var(--muted)}
+.rbs{display:flex;gap:4px;margin-top:5px}
+.rb{font-size:7px;font-weight:600;padding:2px 7px;border-radius:20px}
+.rb-r{background:#FFEBEE;color:var(--red)}
+.rb-o{background:#FFF8E1;color:#F57F17}
+.rb-g{background:#E8F5E9;color:var(--gd)}
+.abtn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:15px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-top:4px}
+
+/* ── AR ── */
+.segc{display:flex;background:#E2E2E2;border-radius:17px;margin:6px 13px 9px;padding:3px;flex-shrink:0}
+.segb{flex:1;padding:6px;border-radius:13px;border:none;background:transparent;font-family:'Poppins',sans-serif;font-size:10px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.segb.active{background:#fff;color:var(--text);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+
+.arvp{margin:0 13px;height:215px;border-radius:18px;background:linear-gradient(160deg,#2d5a27,#4a7c59 50%,#3d6b45);position:relative;overflow:hidden;flex-shrink:0}
+.argrid{position:absolute;inset:0;opacity:.07;background-image:linear-gradient(rgba(255,255,255,1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,1) 1px,transparent 1px);background-size:26px 26px}
+.arc{position:absolute;width:16px;height:16px;border-color:rgba(76,175,80,.9);border-style:solid}
+.arc.tl{top:9px;left:9px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+.arc.tr{top:9px;right:9px;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+.arc.bl{bottom:9px;left:9px;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+.arc.br{bottom:9px;right:9px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+.artag{position:absolute;top:9px;left:9px;background:rgba(0,0,0,.55);border-radius:7px;padding:3px 7px;font-size:8px;color:#fff;display:flex;align-items:center;gap:3px}
+.arcrd{position:absolute;top:9px;right:36px;background:rgba(0,0,0,.45);border-radius:7px;padding:3px 6px;font-size:7px;color:#fff}
+.arhm{position:absolute;top:7px;right:7px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer}
+.arbot{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.82));padding:9px 11px}
+.arbot h4{color:#fff;font-size:11px;font-weight:700}
+.arbot p{color:var(--yellow);font-size:8px;font-weight:600}
+
+.arrc{margin:7px 13px 0;background:var(--card);border-radius:15px;padding:9px;flex-shrink:0}
+.arrt{font-size:8px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.rr{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--border);font-size:9px}
+.rr:last-child{border:none}
+.rr span{color:var(--muted)}
+.aract{display:flex;gap:7px;margin:7px 13px 0}
+.aa{flex:1;padding:9px;border-radius:11px;border:none;font-family:'Poppins',sans-serif;font-size:10px;font-weight:700;cursor:pointer}
+.aa-r{background:var(--red);color:#fff}
+.aa-g{background:var(--green);color:#fff}
+
+.rvvp{margin:0 13px;height:215px;border-radius:18px;background:linear-gradient(160deg,#1a237e,#283593 40%,#3949ab);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex-shrink:0}
+.rvg{position:absolute;inset:0;opacity:.11;background-image:linear-gradient(#7986CB 1px,transparent 1px),linear-gradient(90deg,#7986CB 1px,transparent 1px);background-size:24px 24px}
+.rvl{position:absolute;top:9px;left:9px;background:rgba(255,255,255,.15);border-radius:7px;padding:3px 8px;font-size:8px;color:#fff;font-weight:600}
+.rvi{font-size:56px;z-index:1}
+
+/* ── INBOX ── */
+.ixtabs{display:flex;background:#E2E2E2;border-radius:17px;margin:0 13px 7px;padding:3px;flex-shrink:0}
+.ixtab{flex:1;padding:6px;border-radius:13px;border:none;background:transparent;font-family:'Poppins',sans-serif;font-size:9px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.ixtab.active{background:#fff;color:var(--text);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+
+.nc{background:var(--card);border-radius:15px;padding:11px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+.ns{font-size:11px;font-weight:700;margin-bottom:3px}
+.nm{font-size:9px;color:var(--muted);line-height:1.5;margin-bottom:6px}
+.nm strong{color:var(--text)}
+.ntgs{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.nt{font-size:8px;font-weight:600}
+.nt-a{color:var(--green)}.nt-h{color:var(--red)}.nt-m{color:var(--orange)}.nt-z{color:var(--muted)}
+.ntm{font-size:8px;color:var(--muted);margin-top:4px;text-align:right}
+.nab{padding:4px 10px;border-radius:20px;border:none;font-family:'Poppins',sans-serif;font-size:9px;font-weight:700;cursor:pointer}
+.nab-u{background:#fff;color:var(--green);border:1.5px solid var(--green)}
+.nab-r{background:#FFF0F0;color:var(--red)}
+
+/* ── PROFILE ── */
+.ptop{display:flex;flex-direction:column;align-items:center;padding:8px 13px 5px;gap:4px}
+.pava{width:60px;height:60px;border-radius:50%;background:#E0E0E0;display:flex;align-items:center;justify-content:center;font-size:28px;color:#999;border:3px solid var(--green)}
+.pname{font-size:14px;font-weight:700}
+.prole{font-size:9px;color:var(--muted)}
+.ptabs{display:flex;background:#E2E2E2;border-radius:17px;margin:0 13px 7px;padding:3px;flex-shrink:0}
+.ptab{flex:1;padding:6px;border-radius:13px;border:none;background:transparent;font-family:'Poppins',sans-serif;font-size:9px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .2s}
+.ptab.active{background:#fff;color:var(--text);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+.dr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:10px}
+.dr:last-child{border:none}
+.dr span{color:var(--muted)}
+.dr strong{font-weight:600}
+.ebtn{width:100%;padding:9px;background:#fff;border:1.5px solid var(--green);border-radius:11px;color:var(--green);font-family:'Poppins',sans-serif;font-size:11px;font-weight:700;cursor:pointer;margin-top:7px}
+.iw{background:linear-gradient(135deg,#E3F2FD,#BBDEFB);border-radius:13px;padding:9px;margin-bottom:8px}
+.iw h4{font-size:10px;font-weight:700;color:#1565C0;margin-bottom:5px}
+.ii{display:flex;align-items:center;gap:6px;background:#fff;border-radius:8px;padding:6px;margin-bottom:4px;font-size:9px}
+.ii:last-child{margin:0}
+.iico{font-size:14px}
+.inm{font-weight:600}
+.isub{font-size:7px;color:var(--muted)}
+.iok{margin-left:auto;font-size:8px;color:var(--green);font-weight:700}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="sbar">
+    <span>9:41</span>
+    <span style="font-size:9px;color:var(--muted)">▲▼ 5G ●●●</span>
+    <span>🔋 87%</span>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div class="screen active" id="s-home">
+    <div class="phdr">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="ava">👤</div>
+        <div>
+          <div style="font-size:11px;font-weight:700">Mr. Axsyal Aditya &nbsp;<span class="xbadge">EXECUTIVE</span></div>
+          <div style="font-size:8px;color:var(--muted)">BIM Manager · Djoglo Bridger</div>
+        </div>
+      </div>
+      <div class="online"><div class="dot"></div>Online</div>
+    </div>
+    <div class="sa">
+      <div class="hero">
+        <div style="font-size:7px;opacity:.8;letter-spacing:.5px">ACTIVE PROJECT</div>
+        <h3>Djoglo Bridge – Mojokerto</h3>
+        <p>Transportation Infrastructure · Week 18</p>
+        <div class="hmeta">
+          <div class="hm"><strong>31</strong>Days Left</div>
+          <div class="hm"><strong>32%</strong>Progress</div>
+          <div class="hm"><strong>R-007</strong>Latest Risk</div>
+          <div class="hm"><strong>12</strong>Open Risks</div>
+        </div>
+      </div>
+
+      <div class="krow">
+        <div class="kpi"><div class="kv red">4</div><div class="kl">High</div></div>
+        <div class="kpi"><div class="kv orange">5</div><div class="kl">Medium</div></div>
+        <div class="kpi"><div class="kv green">3</div><div class="kl">Low</div></div>
+        <div class="kpi"><div class="kv blue" style="font-size:8px;line-height:1.3">RPN<br><span style="font-size:13px">350</span></div><div class="kl">Max RPN</div></div>
+      </div>
+
+      <!-- RPN -->
+      <div class="card">
+        <div class="ct">📊 RPN Ranking – RFMEA</div>
+        <div class="cs">Risk Priority Number = O × S × D</div>
+        <canvas id="rpnChart" height="120"></canvas>
+      </div>
+
+      <!-- Risk Donut -->
+      <div class="card">
+        <div class="ct">🎯 Risk Level Distribution</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:90px;height:90px;flex-shrink:0"><canvas id="riskDonut"></canvas></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--red)"></div><span style="font-size:9px">High</span><span style="margin-left:auto;font-weight:700;color:var(--red);font-size:9px">4 (33%)</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--yellow)"></div><span style="font-size:9px">Medium</span><span style="margin-left:auto;font-weight:700;color:var(--orange);font-size:9px">5 (42%)</span></div>
+            <div style="display:flex;align-items:center;gap:4px"><div style="width:8px;height:8px;border-radius:50%;background:var(--green)"></div><span style="font-size:9px">Low</span><span style="margin-left:auto;font-weight:700;color:var(--gd);font-size:9px">3 (25%)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="card">
+        <div class="ct">📋 Risk Status</div>
+        <div class="spills">
+          <div class="sp sp-g"><span class="sv">6</span><span class="sl">Resolved</span></div>
+          <div class="sp sp-o"><span class="sv">4</span><span class="sl">In Progress</span></div>
+          <div class="sp sp-r"><span class="sv">2</span><span class="sl">Unhandled</span></div>
+        </div>
+        <canvas id="statusBar" height="65"></canvas>
+      </div>
+
+      <!-- S-Curve -->
+      <div class="card">
+        <div class="ct">📈 S-Curve Progress</div>
+        <div class="cs">Planned · Actual · Predicted</div>
+        <canvas id="sCurve" height="100"></canvas>
+      </div>
+
+      <!-- Cost -->
+      <div class="card">
+        <div class="ct">💰 Predictive Cost Savings</div>
+        <div class="cs">Savings from early risk mitigation</div>
+        <canvas id="costChart" height="85"></canvas>
+        <div class="cstrip">
+          <div>
+            <div class="cl">Total Cost Saved</div>
+            <div class="cv">Rp 38.278.000</div>
+            <div class="csu">+30% vs reactive approach</div>
+          </div>
+          <div style="font-size:26px">💾</div>
+        </div>
+      </div>
+
+      <!-- Cost Implication -->
+      <div class="card" style="background:linear-gradient(135deg,#fff8e1,#fff3cd)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#5D4037">⚠️ Cost Implication</div>
+            <div style="font-size:15px;font-weight:800;color:#E65100">Rp 38.278.000</div>
+            <div style="font-size:8px;color:#F57F17">+30% overrun if unmitigated</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:52px;height:52px"><canvas id="ciDonut"></canvas></div>
+            <div style="font-size:7px;color:var(--muted)">31 days</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:7px">
+          <div style="font-size:8px"><span style="color:var(--red)">■</span> High 10%</div>
+          <div style="font-size:8px"><span style="color:var(--yellow)">■</span> Med 20%</div>
+          <div style="font-size:8px"><span style="color:var(--green)">■</span> Low 35%</div>
+        </div>
+      </div>
+
+      <!-- Field validations -->
+      <div class="card">
+        <div class="ct">🔍 Field Validations</div>
+        <div class="vrow"><span>West Abutment – A01</span><strong style="color:var(--green)">Done</strong></div>
+        <div class="vrow"><span>East Abutment – C02</span><strong style="color:var(--red)">Pending</strong></div>
+        <div class="vrow"><span>Girder Beam – AB01</span><strong style="color:var(--green)">Done</strong></div>
+        <div class="vrow"><span>Diaphragm Wall</span><strong style="color:var(--orange)">On Progress</strong></div>
+        <div class="vrow"><span>East Wingwall</span><strong style="color:var(--green)">Done</strong></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PROJECTS ══ -->
+  <div class="screen" id="s-projects">
+    <div class="phdr">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="ava">👤</div>
+        <div>
+          <div style="font-size:12px;font-weight:700">Project List &nbsp;<span class="xbadge">EXECUTIVE</span></div>
+          <div style="font-size:8px;color:var(--muted)">Online</div>
+        </div>
+      </div>
+      <div class="online"><div class="dot"></div>Online</div>
+    </div>
+    <div class="sa">
+      <div class="slbl">Ongoing Project</div>
+      <div class="pcard">
+        <h4>GIK Tower</h4><p>High Rise Residential · Floors 1–22</p>
+        <div class="pbar"><div class="pf" style="width:65%"></div></div>
+        <div class="pr"><span class="pp">65% complete</span><span class="pz">Model Ready · 5.2 GB</span></div>
+        <div class="rbs"><span class="rb rb-r">3 High</span><span class="rb rb-o">6 Medium</span><span class="rb rb-g">2 Low</span></div>
+      </div>
+      <div class="pcard">
+        <h4>Djoglo Bridge – Mojokerto</h4><p>Transportation Infrastructure</p>
+        <div class="pbar"><div class="pf" style="width:32%"></div></div>
+        <div class="pr"><span class="pp">32% complete</span><span class="pz">Model Ready · 1.2 GB</span></div>
+        <div class="rbs"><span class="rb rb-r">4 High</span><span class="rb rb-o">5 Medium</span><span class="rb rb-g">3 Low</span></div>
+      </div>
+      <div class="pcard">
+        <h4>Semarang Toll Extension</h4><p>Highway Infrastructure · Phase 2</p>
+        <div class="pbar"><div class="pf" style="width:18%"></div></div>
+        <div class="pr"><span class="pp">18% complete</span><span class="pz">Model Ready · 2.8 GB</span></div>
+        <div class="rbs"><span class="rb rb-r">2 High</span><span class="rb rb-o">3 Medium</span><span class="rb rb-g">5 Low</span></div>
+      </div>
+      <div class="slbl">Completed Project</div>
+      <div class="pcard" style="background:#F7F7F7">
+        <h4>Kaliurang Heritage</h4><p>Commercial Facility</p>
+        <div class="pbar"><div class="pf" style="width:100%;background:#bbb"></div></div>
+        <div class="pr"><span style="font-size:9px;font-weight:700;color:var(--green)">✓ completed</span><span class="pz">Archived · 1.5 GB</span></div>
+      </div>
+      <div class="pcard" style="background:#F7F7F7">
+        <h4>Surabaya Medical Center</h4><p>Healthcare Facility</p>
+        <div class="pbar"><div class="pf" style="width:100%;background:#bbb"></div></div>
+        <div class="pr"><span style="font-size:9px;font-weight:700;color:var(--green)">✓ completed</span><span class="pz">Archived · 0.9 GB</span></div>
+      </div>
+      <button class="abtn">+ Add New Project</button>
+    </div>
+  </div>
+
+  <!-- ══ AR CAMERA ══ -->
+  <div class="screen" id="s-ar">
+    <div class="segc">
+      <button class="segb active" onclick="arTab(this,'ar-view')">AR Camera</button>
+      <button class="segb" onclick="arTab(this,'rv-view')">Revit Model</button>
+    </div>
+    <div id="ar-view" style="display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto;scrollbar-width:none">
+      <div class="arvp">
+        <div class="argrid"></div>
+        <div class="arc tl"></div><div class="arc tr"></div><div class="arc bl"></div><div class="arc br"></div>
+        <div class="artag"><span style="width:5px;height:5px;border-radius:50%;background:var(--red);display:inline-block"></span> Online</div>
+        <div class="arcrd">7°46′12″S 110°23′3″E</div>
+        <div class="arhm">🏠</div>
+        <div class="arbot"><h4>Djoglo Bridge – Mojokerto</h4><p>⚡ East Abutment – ABT.008</p></div>
+      </div>
+      <div class="arrc" style="margin:7px 13px 0">
+        <div class="arrt">Risk Detection – Current Location</div>
+        <div class="rr"><span>Risk ID</span><strong>R-007</strong></div>
+        <div class="rr"><span>Risk Control</span><strong>Assessed / Evaluated</strong></div>
+        <div class="rr"><span>Occurrence (O)</span><strong>1.0</strong></div>
+        <div class="rr"><span>Severity (S)</span><strong style="color:var(--red)">10.0</strong></div>
+        <div class="rr"><span>Detection (D)</span><strong>5.0</strong></div>
+        <div class="rr"><span>RPN Score</span><strong style="color:var(--red);font-weight:800">50</strong></div>
+      </div>
+      <div class="aract" style="margin-bottom:8px">
+        <button class="aa aa-r">🔴 Record</button>
+        <button class="aa aa-g">📤 Feedback</button>
+      </div>
+    </div>
+    <div id="rv-view" style="display:none;flex-direction:column;flex:1;min-height:0;overflow-y:auto;scrollbar-width:none">
+      <div class="rvvp">
+        <div class="rvg"></div>
+        <div class="rvl">BIM Model · Revit 2024</div>
+        <div class="rvi">🏗️</div>
+      </div>
+      <div class="arrc" style="margin:7px 13px 0">
+        <div class="arrt">Model Info</div>
+        <div class="rr"><span>Project</span><strong>Djoglo Bridge</strong></div>
+        <div class="rr"><span>Element</span><strong>East Abutment ABT.008</strong></div>
+        <div class="rr"><span>WBS Code</span><strong>D13-Pile</strong></div>
+        <div class="rr"><span>File Size</span><strong>1.2 GB</strong></div>
+        <div class="rr"><span>Last Sync</span><strong>Today, 09:15</strong></div>
+      </div>
+      <div class="aract" style="margin-bottom:8px">
+        <button class="aa" style="background:#1565C0;color:#fff">📂 Open Revit</button>
+        <button class="aa" style="background:#E3F2FD;color:#1565C0">🔄 Sync Model</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INBOX ══ -->
+  <div class="screen" id="s-inbox">
+    <div class="phdr">
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="ava">📬</div>
+        <div style="font-size:13px;font-weight:700">Inbox</div>
+      </div>
+      <div style="background:var(--red);color:#fff;border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700">3 New</div>
+    </div>
+    <div class="ixtabs">
+      <button class="ixtab active" onclick="ixTab(this,'ix-p')">Pending</button>
+      <button class="ixtab" onclick="ixTab(this,'ix-r')">In Review</button>
+      <button class="ixtab" onclick="ixTab(this,'ix-d')">Resolved</button>
+    </div>
+    <div class="sa">
+      <div id="ix-p">
+        <div class="nc">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="ns">Ms. Nandhita · Risk Manager</div>
+          </div>
+          <div class="nm"><strong>@You</strong> tagged for follow up on <strong>East-Abutment</strong> – immediate mitigation required.</div>
+          <div class="ntgs">
+            <span class="nt nt-a">● Action Required</span>
+            <span class="nt nt-h">● High Risk</span>
+            <span class="nt nt-z">● East Zone</span>
+            <button class="nab nab-u" style="margin-left:auto">Upload Photo</button>
+          </div>
+          <div class="ntm">Today, 09:15</div>
+        </div>
+        <div class="nc">
+          <div class="ns">Mr. Ghiffari · BIM Modeler</div>
+          <div class="nm">Feedback on WBS D13-Pile. Schedule deviation – validate BIM 13.04 AR before MEP.</div>
+          <div class="ntgs">
+            <span class="nt nt-m">● Modeling Risk</span>
+            <span class="nt nt-z">● Ground</span>
+            <button class="nab nab-r" style="margin-left:auto">Review</button>
+          </div>
+          <div class="ntm">Yesterday, 13:30</div>
+        </div>
+        <div class="nc">
+          <div class="ns">Ms. Masyhta · Risk Analyst</div>
+          <div class="nm">Risk Detected – D13-Pile is Delayed. Recalculated Analysis required.</div>
+          <div class="ntgs">
+            <span class="nt nt-z">● Ground</span>
+            <span class="nt nt-z">● Recalculated</span>
+          </div>
+          <div class="ntm">Yesterday, 12:35</div>
+        </div>
+      </div>
+      <div id="ix-r" style="display:none">
+        <div class="nc">
+          <div class="ns">Mr. Ghiffari · BIM Modeler</div>
+          <div class="nm">Revit model for Girder Beam submitted. Check clash detection results.</div>
+          <div class="ntgs"><span class="nt" style="color:#1565C0">● BIM Review</span><button class="nab nab-u" style="margin-left:auto">Open Model</button></div>
+          <div class="ntm">2 days ago</div>
+        </div>
+      </div>
+      <div id="ix-d" style="display:none">
+        <div class="nc" style="opacity:.7">
+          <div class="ns">System · AutoAlert</div>
+          <div class="nm">West Abutment A01 validation completed → Resolved.</div>
+          <div class="ntgs"><span class="nt" style="color:var(--green)">● Resolved</span></div>
+          <div class="ntm">3 days ago</div>
+        </div>
+        <div class="nc" style="opacity:.7">
+          <div class="ns">Ms. Nandhita · Risk Manager</div>
+          <div class="nm">Girder Beam mitigation approved. RPN 250 → 40.</div>
+          <div class="ntgs"><span class="nt" style="color:var(--green)">● Resolved</span></div>
+          <div class="ntm">5 days ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PROFILE ══ -->
+  <div class="screen" id="s-profile">
+    <div class="ptop">
+      <div class="pava">👤</div>
+      <div style="display:flex;align-items:center;gap:5px">
+        <span class="pname">Mr. Axsyal Aditya</span>
+        <span class="xbadge">EXECUTIVE</span>
+      </div>
+      <div class="prole">Executive Account · BIM Manager</div>
+      <div class="online" style="margin-top:2px"><div class="dot"></div>Online</div>
+    </div>
+    <div class="ptabs">
+      <button class="ptab active" onclick="ptTab(this,'pt-d')">Data</button>
+      <button class="ptab" onclick="ptTab(this,'pt-a')">Access</button>
+      <button class="ptab" onclick="ptTab(this,'pt-s')">Settings</button>
+    </div>
+    <div class="sa">
+      <div id="pt-d">
+        <div class="card">
+          <div class="dr"><span>Employee ID</span><strong>ADH-2023-00054</strong></div>
+          <div class="dr"><span>Email</span><strong style="font-size:9px">axsy@mail.adhiconst.ac.id</strong></div>
+          <div class="dr"><span>Division</span><strong>BIM Management</strong></div>
+          <div class="dr"><span>Account Type</span><strong style="color:var(--gd)">Executive Account</strong></div>
+          <div class="dr"><span>Active Projects</span><strong>2 Project</strong></div>
+          <div class="dr"><span>All Projects</span><strong>5 Project</strong></div>
+          <div class="dr"><span>Last Login</span><strong>Today, 14:03</strong></div>
+          <button class="ebtn">✏️ Edit Data</button>
+        </div>
+        <div class="iw">
+          <h4>🔗 Microsoft 365 Integration</h4>
+          <div class="ii"><span class="iico">📊</span><div><div class="inm">Power BI</div><div class="isub">Dashboard Connected</div></div><span class="iok">✓ Active</span></div>
+          <div class="ii"><span class="iico">📁</span><div><div class="inm">OneDrive</div><div class="isub">Excel Data Sync</div></div><span class="iok">✓ Active</span></div>
+          <div class="ii"><span class="iico">⚡</span><div><div class="inm">Dynamo Script</div><div class="isub">Auto-import from Excel</div></div><span class="iok">✓ Ready</span></div>
+          <div class="ii"><span class="iico">🏗️</span><div><div class="inm">Revit 2024</div><div class="isub">BIM Model Linked</div></div><span class="iok">✓ Synced</span></div>
+        </div>
+        <div style="font-size:7px;text-align:right;color:var(--muted)">adhi.cons</div>
+      </div>
+      <div id="pt-a" style="display:none">
+        <div class="card">
+          <div class="dr"><span>Role</span><strong>Executive (Admin)</strong></div>
+          <div class="dr"><span>View Dashboard</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+          <div class="dr"><span>Edit Risk Data</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+          <div class="dr"><span>Export Reports</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+          <div class="dr"><span>Manage Users</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+          <div class="dr"><span>AR Camera Access</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+          <div class="dr"><span>Add Projects</span><strong style="color:var(--green)">✓ Allowed</strong></div>
+        </div>
+      </div>
+      <div id="pt-s" style="display:none">
+        <div class="card">
+          <div class="dr"><span>Notifications</span><strong style="color:var(--green)">On</strong></div>
+          <div class="dr"><span>Dark Mode</span><strong style="color:var(--muted)">Off</strong></div>
+          <div class="dr"><span>Language</span><strong>English</strong></div>
+          <div class="dr"><span>Sync Interval</span><strong>Every 15 min</strong></div>
+          <div class="dr"><span>App Version</span><strong>v2.4.1</strong></div>
+          <button class="ebtn" style="color:var(--red);border-color:var(--red);margin-top:9px">🚪 Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BOTTOM NAV ══ -->
+  <div class="bnav">
+    <button class="nb active" id="nb-home" onclick="go('s-home','nb-home')">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    </button>
+    <button class="nb" id="nb-proj" onclick="go('s-projects','nb-proj')">
+      <svg viewBox="0 0 24 24"><path d="M2 6h2v14H2zm4 0h2v14H6zm14 0H11c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h9c.55 0 1-.45 1-1V7c0-.55-.45-1-1-1zm-1 12H12V8h7v10z"/></svg>
+    </button>
+    <button class="nb" id="nb-ar" onclick="go('s-ar','nb-ar')">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M20 4h-3.17L15 2H9L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4V6h4.05l1.83-2h4.24l1.83 2H20v12z"/></svg>
+    </button>
+    <button class="nb" id="nb-inbox" onclick="go('s-inbox','nb-inbox')">
+      <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+    </button>
+    <button class="nb" id="nb-prof" onclick="go('s-profile','nb-prof')">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+function go(sid,nid){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById(sid).classList.add('active');
+  document.getElementById(nid).classList.add('active');
+}
+function arTab(btn,tid){
+  btn.closest('.segc').querySelectorAll('.segb').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['ar-view','rv-view'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=id===tid?'flex':'none';
+  });
+}
+function ixTab(btn,tid){
+  btn.closest('.ixtabs').querySelectorAll('.ixtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['ix-p','ix-r','ix-d'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=id===tid?'block':'none';
+  });
+}
+function ptTab(btn,tid){
+  btn.closest('.ptabs').querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['pt-d','pt-a','pt-s'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=id===tid?'block':'none';
+  });
+}
+
+const F9={family:'Poppins',size:9};
+const cd={responsive:true,maintainAspectRatio:true,animation:{duration:700},plugins:{legend:{display:false}}};
+
+new Chart(document.getElementById('rpnChart'),{
+  type:'bar',
+  data:{labels:['Foundation','Pile Delay','Rebar Corr.','Formwork','Weather','Labor'],
+    datasets:[{data:[350,280,210,175,140,90],
+      backgroundColor:['#F44336','#FF5722','#FF9800','#FFC107','#8BC34A','#4CAF50'],borderRadius:5}]},
+  options:{...cd,indexAxis:'y',
+    scales:{x:{grid:{color:'#f0f0f0'},ticks:{font:F9},max:400},y:{grid:{display:false},ticks:{font:F9}}}}
+});
+
+new Chart(document.getElementById('riskDonut'),{
+  type:'doughnut',
+  data:{datasets:[{data:[4,5,3],backgroundColor:['#F44336','#FFC107','#4CAF50'],borderWidth:0}]},
+  options:{...cd,cutout:'68%'}
+});
+
+new Chart(document.getElementById('statusBar'),{
+  type:'bar',
+  data:{labels:['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets:[
+      {label:'Resolved',data:[1,2,3,4,5,6],backgroundColor:'#4CAF50',borderRadius:3},
+      {label:'In Progress',data:[3,3,4,4,4,4],backgroundColor:'#FFC107',borderRadius:3},
+      {label:'Unhandled',data:[5,4,3,3,2,2],backgroundColor:'#F44336',borderRadius:3}]},
+  options:{...cd,plugins:{legend:{display:true,labels:{font:F9,boxWidth:8}}},
+    scales:{x:{stacked:true,grid:{display:false},ticks:{font:F9}},y:{stacked:true,grid:{color:'#f5f5f5'},ticks:{font:F9}}}}
+});
+
+new Chart(document.getElementById('sCurve'),{
+  type:'line',
+  data:{labels:['W1','W4','W8','W12','W16','W20','W24'],
+    datasets:[
+      {label:'Planned',data:[5,15,30,50,70,88,100],borderColor:'#1565C0',borderDash:[4,4],fill:false,tension:.4,pointRadius:2,borderWidth:1.5,pointBackgroundColor:'#1565C0'},
+      {label:'Actual',data:[4,13,26,42,null,null,null],borderColor:'#4CAF50',fill:false,tension:.4,pointRadius:2,borderWidth:2,pointBackgroundColor:'#4CAF50'},
+      {label:'Predicted',data:[null,null,null,42,60,82,100],borderColor:'#FF9800',borderDash:[3,3],fill:false,tension:.4,pointRadius:2,borderWidth:1.5,pointBackgroundColor:'#FF9800'}]},
+  options:{...cd,plugins:{legend:{display:true,labels:{font:F9,boxWidth:8}}},
+    scales:{x:{grid:{display:false},ticks:{font:F9}},y:{grid:{color:'#f5f5f5'},ticks:{font:F9,callback:v=>v+'%'},max:100}}}
+});
+
+new Chart(document.getElementById('costChart'),{
+  type:'bar',
+  data:{labels:['Foundation','Pile','Rebar','Formwork','Finish'],
+    datasets:[
+      {label:'Cost Saved',data:[12,9.5,6.8,5.2,4.7],backgroundColor:'#4CAF50',borderRadius:4},
+      {label:'Potential Loss',data:[18,14,10,8,7],backgroundColor:'#FFCDD2',borderRadius:4}]},
+  options:{...cd,plugins:{legend:{display:true,labels:{font:F9,boxWidth:8}}},
+    scales:{x:{grid:{display:false},ticks:{font:F9}},y:{grid:{color:'#f5f5f5'},ticks:{font:F9,callback:v=>v+'M'}}}}
+});
+
+new Chart(document.getElementById('ciDonut'),{
+  type:'doughnut',
+  data:{datasets:[{data:[10,20,35,35],backgroundColor:['#F44336','#FFC107','#4CAF50','#E0E0E0'],borderWidth:0}]},
+  options:{...cd,cutout:'62%'}
+});
+</script>
+</body>
+</html>
